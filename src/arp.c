@@ -1,5 +1,5 @@
 #include "../header/protocol/arp.h"
-
+#include <arpa/inet.h>
 
 // 单例模式ARP
 static struct arp_table *arpt = NULL;
@@ -106,7 +106,6 @@ struct rte_mbuf* send_arp_pack(struct rte_mempool* mbuf_pool,uint16_t opcode , u
 // 定时器回调 参数定时器和需要回调的参数
 void arp_request_timer_cb (__attribute__((unused)) struct rte_timer* tim, __attribute__((unused)) void* arg)
 {
-    printf("触发回调！\n");
     struct rte_mempool* mbuf_pool = (struct rte_mempool*)arg;
     struct inout_ring* ring = ringInstance();
 
@@ -120,11 +119,11 @@ void arp_request_timer_cb (__attribute__((unused)) struct rte_timer* tim, __attr
         uint8_t* dstmac =  get_dst_mac(dstip);
         if (dstmac == NULL)
         {
-            struct in_addr addr;
-            addr.s_addr = dstip;
-            printf(" --> arp send: %s\n", inet_ntoa(addr));
-            addr.s_addr = g_src_ip;
-            printf(" --> arp src send: %s\n", inet_ntoa(addr));
+            //struct in_addr addr;
+            //addr.s_addr = dstip;
+            //printf(" --> arp send: %s\n", inet_ntoa(addr));
+            //addr.s_addr = g_src_ip;
+            //printf(" --> arp src send: %s\n", inet_ntoa(addr));
             //ARP表找不到内容，就发这样
             //arphdr -> mac :  FF:FF:FF:FF:FF:FF
             //ether -> mac:    00:00:00:00:00:00

@@ -75,12 +75,12 @@ void ifIndex_init (struct rte_mempool * mbuf_pool)
 
 
 // 初始化定时器
-void timer_init(struct rte_mempool * mbuf_pool,unsigned id) 
+void timer_init(struct rte_mempool * mbuf_pool) 
 {
-    
+  
     // 初始化定时器
     rte_timer_subsystem_init();
-    struct rte_timer arp_timer;
+    static struct rte_timer arp_timer;
     rte_timer_init(&arp_timer);
 
     // 设置定时器频率
@@ -88,7 +88,7 @@ void timer_init(struct rte_mempool * mbuf_pool,unsigned id)
     unsigned lcore_id = rte_lcore_id();
 
     // 设置定时器回调
-    rte_timer_reset(&arp_timer,hz,PERIODICAL,id,arp_request_timer_cb,mbuf_pool);
+    rte_timer_reset(&arp_timer,hz,PERIODICAL,lcore_id,arp_request_timer_cb,mbuf_pool);
 }
 
 // 初始化环
@@ -131,7 +131,7 @@ int initDPDK  (int argc, char* argv[])
 
     unsigned lcore_id = rte_lcore_id();
     // 初始化定时器
-    timer_init(mbuf_pool,lcore_id);
+    timer_init(mbuf_pool);
 
     // 初始化环
     ring_init();
@@ -179,7 +179,7 @@ int initDPDK  (int argc, char* argv[])
 		diff_tsc = cur_tsc - prev_tsc;
         //printf("prev:%I64d, cur_tsc:%I64d, diff_tsc:%I64d \n",prev_tsc,cur_tsc,diff_tsc);
 		if (diff_tsc > TIMER_RESOLUTION_CYCLES) {
-            printf("触发-----------prev:%I64d, cur_tsc:%I64d, diff_tsc:%I64d \n",prev_tsc,cur_tsc,diff_tsc);
+            printf("触发-----------diff_tsc:%I64d \n",diff_tsc);
 			rte_timer_manage();
 			prev_tsc = cur_tsc;
 		}

@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/home/dpdk/workdir/dpdk-stable-19.08.2/x86_64-native-linux-gcc/include/"
+                "/home/dpdk/workdir/dpdk-stable-19.08.2/x86_64-native-linux-gcc/include/",
+                "/usr/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

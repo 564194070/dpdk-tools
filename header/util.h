@@ -1,3 +1,6 @@
+#ifndef __UTIL_H_
+#define __UTIL_H_
+
 #include <rte_ethdev.h>
 
 // 计算IP的宏定义
@@ -7,3 +10,4 @@
 // 打印MAC地址
 void print_mac(const char* what, const struct rte_ether_addr* eth_addr);
 
+#endif

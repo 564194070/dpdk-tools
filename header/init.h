@@ -13,7 +13,7 @@
 
 int initDPDK  (int argc, char* argv[]);
 void ifIndex_init (struct rte_mempool * mbuf_pool);
-void timer_init(struct rte_mempool * mbuf_pool,unsigned id);
+void timer_init(struct rte_mempool * mbuf_pool);
 void ring_init(void);
 
 
