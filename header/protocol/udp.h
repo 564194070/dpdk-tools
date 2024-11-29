@@ -11,6 +11,7 @@
 #include <rte_bitmap.h>
 #include <rte_malloc.h>
 #include "../connectConfig.h"
+#include "../globalConfig.h"
 
 
 #define UDPRECVSIZE 1024
@@ -43,6 +44,9 @@ void udpBitMapDestory();
 int nsocket(__attribute__((unused)) int domain, int type, __attribute__((unused))  int protocol);
 // 监听端口
 int nbind(int sockfd, const struct sockaddr *addr,__attribute__((unused))  socklen_t addrlen);
+// 从套接字缓冲区接收数据
+ssize_t nrecvfrom(int sockfd, void *buf, size_t len, __attribute__((unused))  int flags, struct sockaddr *src_addr, __attribute__((unused))  socklen_t *addrlen);
+//  向套接字缓冲区发送数据
 
 
 

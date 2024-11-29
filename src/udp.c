@@ -116,7 +116,9 @@ int nbind(int fd, const struct sockaddr *addr, __attribute__((unused)) socklen_t
     const struct sockaddr_in *laddr = (const struct sockaddr_in *)addr;
     host->localport = laddr->sin_port;
 	rte_memcpy(&host->localip, &laddr->sin_addr.s_addr, sizeof(uint32_t));
-	rte_memcpy(host->localmac, gSrcMac, RTE_ETHER_ADDR_LEN);
+	rte_memcpy(host->localmac, g_src_mac, RTE_ETHER_ADDR_LEN);
+
+    return 0;
 }
 
 int udpApp(__attribute__((unused)) void *arg)
@@ -160,6 +162,12 @@ int udpApp(__attribute__((unused)) void *arg)
 
     // 关闭套接字
     nclose(connfd);
+}
+
+// 从缓冲区获取数据包信息
+ssize_t nrecvfrom(int sockfd, void *buf, size_t len, __attribute__((unused))  int flags, struct sockaddr *src_addr, __attribute__((unused))  socklen_t *addrlen)
+{
+    
 }
 
 int recvUDP(struct rte_mbuf *udpmbuf)
