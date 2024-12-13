@@ -1,4 +1,5 @@
 #include "../header/work.h"
+extern uint32_t g_src_ip;
 
 int pkt_process(void *arg)
 {
@@ -39,7 +40,7 @@ int pkt_process(void *arg)
                 // 比对IP，处理自身相关数据包
                 if (arp_hdr->arp_data.arp_tip == g_src_ip)
                 {
-                    printf("接受到本机报文\n");
+                    //printf("接受到本机报文\n");
                     //分别处理ARP的发送和接受请求
                     if (arp_hdr->arp_opcode == rte_cpu_to_be_16(RTE_ARP_OP_REQUEST))
                     {
@@ -51,7 +52,7 @@ int pkt_process(void *arg)
                     else if (arp_hdr->arp_opcode == rte_cpu_to_be_16(RTE_ARP_OP_REPLY))
                     {
                         // 处理ARP响应，添加到ARP缓存
-                        printf("接受到ARP响应报文\n");
+                        //printf("接受到ARP响应报文\n");
                         struct arp_table* table = arp_table_instance();
                         // 获取ARP核心的MAC和IP地址
                         uint8_t* arp_hw_addr = get_dst_mac(arp_hdr->arp_data.arp_sip);
@@ -82,6 +83,16 @@ int pkt_process(void *arg)
                 // 分别处理TCP/UDP/ICMP数据包
                 if (iphdr->next_proto_id == IPPROTO_UDP)
                 {
+                    
+                    struct in_addr addr;
+                    addr.s_addr = iphdr->dst_addr;
+                    struct in_addr addr2;
+                    addr2.s_addr = iphdr->src_addr;
+
+                    printf("接收到UDP Request ---> src: %s", inet_ntoa(addr));
+                    printf("dst %s \n",inet_ntoa(addr2));
+                                    
+                //printf("接收到arp响应 ---> src: %s dst %s ", inet_ntoa(addr),inet_ntoa(addr2));
                     //struct rte_udp_hdr *udphdr = (struct rte_udp_hdr *)(iphdr + 1);
 
                     // 构建UDP回应五元组
@@ -96,6 +107,9 @@ int pkt_process(void *arg)
                     //struct rte_mbuf *txbuf = send_udp_pack(mbuf_pool,(uint8_t *)(udphdr + 1), length);
                     //rte_ring_mp_enqueue_burst(ring->out,(void**)&txbuf,1,NULL);
                     //rte_pktmbuf_free(mbufs[index]);
+
+                    recvUDP(mbufs[index]);
+
                 }
                 else if (iphdr->next_proto_id == IPPROTO_ICMP)
                 {
@@ -123,6 +137,7 @@ int pkt_process(void *arg)
             }
 
         }
+        sendUdpPackage(mbuf_pool);
     }
     return 0;
 }

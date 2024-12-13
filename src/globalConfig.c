@@ -2,6 +2,7 @@
 #include "../header/globalConfig.h"
 
 uint32_t g_src_ip = MAKE_IPVE_ADDR(10,6,140,51);
+uint8_t g_src_mac[RTE_ETHER_ADDR_LEN];
 
 
 const struct rte_eth_conf ifIndex_conf_default = {

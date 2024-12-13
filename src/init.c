@@ -1,14 +1,6 @@
-#include  "../header/globalConfig.h"
-#include  "../header/ring.h"
-#include "../header/work.h"
 #include "../header/init.h"
-#include "../header/protocol/arp.h"
 
-
-#include <rte_malloc.h>
-#include <rte_common.h>
-#include <rte_timer.h>
-
+extern uint8_t g_src_mac[RTE_ETHER_ADDR_LEN];
 
 // 初始化网卡
 void ifIndex_init (struct rte_mempool * mbuf_pool)
@@ -138,8 +130,10 @@ int initDPDK  (int argc, char* argv[])
 
     // 初始化多核运行环境
     printf("初始化工作线程成功\n");
-    rte_eal_remote_launch(pkt_process, mbuf_pool, rte_get_next_lcore(lcore_id, 1, 0));
-
+    lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
+    rte_eal_remote_launch(pkt_process, mbuf_pool, lcore_id);
+    lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
+    rte_eal_remote_launch(udpApp, mbuf_pool, lcore_id);
 
     // 自己这个0号核心就干一件事，接收数据包，放入环中。从环中拿数组包，发送。
     struct inout_ring *ring = ringInstance();
@@ -179,7 +173,7 @@ int initDPDK  (int argc, char* argv[])
 		diff_tsc = cur_tsc - prev_tsc;
         //printf("prev:%I64d, cur_tsc:%I64d, diff_tsc:%I64d \n",prev_tsc,cur_tsc,diff_tsc);
 		if (diff_tsc > TIMER_RESOLUTION_CYCLES) {
-            printf("触发-----------diff_tsc:%I64d \n",diff_tsc);
+            //printf("触发-----------diff_tsc:%I64d \n",diff_tsc);
 			rte_timer_manage();
 			prev_tsc = cur_tsc;
 		}

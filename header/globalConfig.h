@@ -25,8 +25,8 @@ extern  const struct rte_eth_conf ifIndex_conf_default;
 
 // 本机配置
 // 本机MAC地址
-uint8_t g_src_mac[RTE_ETHER_ADDR_LEN];
+extern uint8_t g_src_mac[RTE_ETHER_ADDR_LEN];
 // 本机IP地址
-extern uint32_t g_src_ip;
+//extern uint32_t g_src_ip;
 
 # endif

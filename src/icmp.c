@@ -1,5 +1,8 @@
 #include "../header/protocol/icmp.h"
 
+extern uint32_t g_src_ip;
+extern uint8_t g_src_mac[RTE_ETHER_ADDR_LEN];
+
 uint16_t ng_checksum(uint16_t *addr, int count) {
 
 	register long sum = 0;

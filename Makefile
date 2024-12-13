@@ -5,7 +5,7 @@
 APP = udpRecvSend
 
 # all source are stored in SRCS-y
-SRCS-y := main.c ./src/globalConfig.c ./src/arp.c ./src/icmp.c ./src/init.c ./src/ring.c ./src/work.c ./src/util.c
+SRCS-y := main.c ./src/globalConfig.c  ./src/arp.c ./src/connect.c    ./src/icmp.c ./src/init.c ./src/ring.c ./src/udp.c ./src/work.c ./src/util.c
 
 # Build using pkg-config variables if possible
 ifeq ($(shell pkg-config --exists libdpdk && echo 0),0)
@@ -25,10 +25,10 @@ LDFLAGS_SHARED = $(shell $(PKGCONF) --libs libdpdk)
 LDFLAGS_STATIC = -Wl,-Bstatic $(shell $(PKGCONF) --static --libs libdpdk)
 
 build/$(APP)-shared: $(SRCS-y) Makefile $(PC_FILE) | build
-	$(CC) $(CFLAGS) $(SRCS-y) -o $@ $(LDFLAGS) $(LDFLAGS_SHARED) -I /usr/include
+	$(CC) $(CFLAGS) $(SRCS-y) -o $@ $(LDFLAGS) $(LDFLAGS_SHARED) -I /usr/include  -g
 
 build/$(APP)-static: $(SRCS-y) Makefile $(PC_FILE) | build
-	$(CC) $(CFLAGS) $(SRCS-y) -o $@ $(LDFLAGS) $(LDFLAGS_STATIC) -I /usr/include
+	$(CC) $(CFLAGS) $(SRCS-y) -o $@ $(LDFLAGS) $(LDFLAGS_STATIC) -I /usr/include -g
 
 build:
 	@mkdir -p $@

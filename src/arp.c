@@ -4,6 +4,9 @@
 // 单例模式ARP
 static struct arp_table *arpt = NULL;
 
+extern uint32_t g_src_ip;
+extern uint8_t g_src_mac[RTE_ETHER_ADDR_LEN];
+
 
 // arp reply信息
 static uint8_t g_default_arp_mac[RTE_ETHER_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
