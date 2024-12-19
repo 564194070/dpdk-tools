@@ -55,7 +55,11 @@ int pkt_process(void *arg)
                         //printf("接受到ARP响应报文\n");
                         struct arp_table* table = arp_table_instance();
                         // 获取ARP核心的MAC和IP地址
-                        uint8_t* arp_hw_addr = get_dst_mac(arp_hdr->arp_data.arp_sip);
+                        uint8_t* arp_hw_addr = get_dst_mac(arp_hdr->arp_data.arp_sip);                        
+
+                        struct in_addr addr3;
+                        addr3.s_addr=arp_hdr->arp_data.arp_sip;
+                        printf("接收到arp cache---> src: %s\n ", inet_ntoa(addr3));
                         if (arp_hw_addr == NULL)
                         {
                             struct arp_entry* entry = rte_malloc("arp entry",sizeof(struct arp_entry), 0);
@@ -85,14 +89,14 @@ int pkt_process(void *arg)
                 {
                     
                     struct in_addr addr;
-                    addr.s_addr = iphdr->dst_addr;
+                    addr.s_addr = iphdr->src_addr;
                     struct in_addr addr2;
-                    addr2.s_addr = iphdr->src_addr;
+                    addr2.s_addr = iphdr->dst_addr;
 
-                    printf("接收到UDP Request ---> src: %s", inet_ntoa(addr));
-                    printf("dst %s \n",inet_ntoa(addr2));
+                    //printf("接收到UDP Request ---> src: %s", inet_ntoa(addr));
+                    //printf("dst %s \n",inet_ntoa(addr2));
                                     
-                //printf("接收到arp响应 ---> src: %s dst %s ", inet_ntoa(addr),inet_ntoa(addr2));
+                    //printf("接收到arp响应 ---> src: %s dst %s ", inet_ntoa(addr),inet_ntoa(addr2));
                     //struct rte_udp_hdr *udphdr = (struct rte_udp_hdr *)(iphdr + 1);
 
                     // 构建UDP回应五元组

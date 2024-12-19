@@ -128,12 +128,15 @@ int initDPDK  (int argc, char* argv[])
     // 初始化环
     ring_init();
 
+
     // 初始化多核运行环境
     printf("初始化工作线程成功\n");
     lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
     rte_eal_remote_launch(pkt_process, mbuf_pool, lcore_id);
+    printf("初始化Pack receive %d\n",lcore_id);
     lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
     rte_eal_remote_launch(udpApp, mbuf_pool, lcore_id);
+    printf("初始化UDP %d\n",lcore_id);
 
     // 自己这个0号核心就干一件事，接收数据包，放入环中。从环中拿数组包，发送。
     struct inout_ring *ring = ringInstance();

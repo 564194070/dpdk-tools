@@ -136,6 +136,7 @@ void arp_request_timer_cb (__attribute__((unused)) struct rte_timer* tim, __attr
         else
         {
             // 能找到ARP信息
+            printf("ensure arp!\n");
             arpbuf = send_arp_pack(mbuf_pool, RTE_ARP_OP_REQUEST, dstmac ,g_src_ip,dstip);
         }
         /*

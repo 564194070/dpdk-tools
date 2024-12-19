@@ -27,7 +27,20 @@ struct connectConfig * getConnectConfigFromIPPort(uint32_t dip, uint16_t port, u
 
 		if (dip == host->localip && port == host->localport && proto == host->protocol) {
 			return host;
-		}
+		} else {
+            if (dip != host->localip)
+            {
+                printf("ip error -------------------\n");
+            }
+            else if (port != host->localport)
+            {
+                printf("port error -------------------\n");
+            }
+            else if (proto == host->protocol)
+            {
+                printf("proto error -------------------\n");
+            }
+        }
 
 	}
 

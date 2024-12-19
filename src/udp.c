@@ -1,8 +1,8 @@
 
 #include "../header/protocol/udp.h"
+#include  "../header/bitmap.h"
 
-struct rte_bitmap *udp_bitmap;
-void *mem;
+struct BitMap *udp_bitmap;
 
 extern uint8_t g_src_mac[RTE_ETHER_ADDR_LEN];
 
@@ -11,46 +11,38 @@ void udpBitMapInit(void)
     // 计算UDP BITMAP占用字节数
     uint32_t bitMapSize = rte_bitmap_get_memory_footprint(UDP_FD_BITS);
 
-    // 申请对应数量内存，并填充0
-    mem = rte_zmalloc("udp_bit_map", bitMapSize, RTE_CACHE_LINE_SIZE);
-    if (mem == NULL)
-    {
-        printf("failed to create udp bitmap memory");
-        exit(EXIT_FAILURE);
-    }
-
-    // 初始化bitMap
-    udp_bitmap = rte_bitmap_init(UDP_FD_BITS, mem, bitMapSize);
-    if (udp_bitmap == NULL)
-    {
-        printf("Failed to init bitmap!");
-        exit(EXIT_FAILURE);
-    }
-    return;
+    udp_bitmap=bitMapCreate(200);
 }
 
 void udpBitMapDestory(void)
 {
-    rte_bitmap_free(udp_bitmap);
-    rte_free(mem);
+    bitMapDstroy(udp_bitmap);
 }
 
 int getFdBelongToUDPBitMap(void)
 {
-    uint32_t bitMapSize = rte_bitmap_get_memory_footprint(UDP_FD_BITS);
-    for (unsigned int index = 0; index < bitMapSize; ++index)
+    uint64_t res;
+
+    for (int index =0; index < udp_bitmap->len; ++index)
     {
-        if (!rte_bitmap_get(udp_bitmap, index))
-        {
-            return index;
-        }
+
+
+            res=bitMapIsSet(udp_bitmap, index);
+            if (res == 0)
+            {
+                bitMapSet(udp_bitmap,index);
+                return res;
+            }
     }
+    printf("create bit failed\n");
     return -1;
 }
 
 int nsocket(__attribute__((unused)) int domain, int type, __attribute__((unused)) int protocol)
 {
+    udpBitMapInit();
     int fd;
+
     fd = getFdBelongToUDPBitMap();
 
     struct connectConfig *host = rte_malloc("connectConfig", sizeof(struct connectConfig), 0);
@@ -58,6 +50,9 @@ int nsocket(__attribute__((unused)) int domain, int type, __attribute__((unused)
     {
         return -1;
     }
+    
+
+
     memset(host, 0, sizeof(struct connectConfig));
 
     host->fd = fd;
@@ -66,7 +61,7 @@ int nsocket(__attribute__((unused)) int domain, int type, __attribute__((unused)
     {
         host->protocol = IPPROTO_UDP;
     }
-
+    
     // 创建当前应用收发缓冲区
     host->rcvbuf = rte_ring_create("udp  recv", UDPRECVSIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
     if (host->rcvbuf == NULL)
@@ -76,7 +71,7 @@ int nsocket(__attribute__((unused)) int domain, int type, __attribute__((unused)
         return -1;
     }
 
-    host->sndbuf = rte_ring_create("udp  recv", UDPRECVSIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
+    host->sndbuf = rte_ring_create("udp  send", UDPRECVSIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
     if (host->sndbuf == NULL)
     {
 
@@ -94,6 +89,7 @@ int nsocket(__attribute__((unused)) int domain, int type, __attribute__((unused)
 
     LL_ADD(host, headUDPConfig);
     return fd;
+    
 }
 
 int nbind(int fd, const struct sockaddr *addr, __attribute__((unused)) socklen_t addrlen)
@@ -126,7 +122,7 @@ ssize_t nrecvfrom(int sockfd, void *buf, size_t len, __attribute__((unused))  in
     unsigned char *ptr = NULL;
 
     struct connectData *data = NULL;
-    //struct sockaddr_in *saddr = (struct sockaddr_in *)src_addr;
+    struct sockaddr_in *saddr = (struct sockaddr_in *)src_addr;
 
     //   
     int  nb =  -1;
@@ -138,6 +134,9 @@ ssize_t nrecvfrom(int sockfd, void *buf, size_t len, __attribute__((unused))  in
         pthread_cond_wait(&host->cond, &host->mutex);
     }
     pthread_mutex_unlock(&host->mutex);
+
+    saddr->sin_port=data->sport;
+    rte_memcpy(&saddr->sin_addr,&data->sip,sizeof(uint32_t));
 
     // 将数据从ringbuffer移出
     if (len < data->length)
@@ -172,6 +171,7 @@ ssize_t nsendto(int sockfd, const void *buf, size_t len, __attribute__((unused))
     struct connectConfig  *host  = getConnectConfigFromFd(sockfd);
     if  (host == NULL)
     {
+        printf("send find fd error!\n");
         return -1;
     }
 
@@ -179,6 +179,7 @@ ssize_t nsendto(int sockfd, const void *buf, size_t len, __attribute__((unused))
     struct connectData *sendData = rte_malloc("data",sizeof(struct connectData),0);
     if (sendData  ==  NULL)
     {
+        printf("send mallco create error!\n");
         return-1;
     } 
 
@@ -193,13 +194,21 @@ ssize_t nsendto(int sockfd, const void *buf, size_t len, __attribute__((unused))
     sendData->data = rte_malloc("sendData",len,0 );
     if (sendData->data  == NULL)
     {
+        printf("send find rte_malloc error!\n");
         rte_free(sendData);
         return -1;
     }
 
     rte_memcpy(sendData->data,buf,len);
     // sned to send cache
-    rte_ring_mp_enqueue(host->sndbuf,sendData);
+    //printf("send to %s:%d, data:%s\n", inet_ntoa(daddr->sin_addr), ntohs(daddr->sin_port));
+    //printf("socket fd == %d\n",host->fd);
+    printf("add data 1\n");
+    int sendRes = rte_ring_mp_enqueue(host->sndbuf,sendData);
+    //printf("send RES is %d\n",sendRes);
+
+    struct connectConfig *head = NULL;
+
     return len;
 }
 
@@ -287,7 +296,7 @@ struct rte_mbuf *send_udp_pack(struct rte_mempool *mbuf_pool, uint32_t sip, uint
 int recvUDP(struct rte_mbuf *udpmbuf)
 {
 
-    printf("recv UDP package\n");
+    //printf("recv UDP package\n");
     struct rte_ipv4_hdr *iphdr = rte_pktmbuf_mtod_offset(udpmbuf, struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
     struct rte_udp_hdr *udphdr = (struct rte_udp_hdr *)(iphdr + 1);
 
@@ -299,9 +308,11 @@ int recvUDP(struct rte_mbuf *udpmbuf)
     // 不接受目的不是本机的数据包
     struct connectConfig* host= getConnectConfigFromIPPort(iphdr->dst_addr, udphdr->dst_port, iphdr->next_proto_id);
     if (host == NULL) {
+        //printf("recv 3333333 package\n");
         rte_pktmbuf_free(udpmbuf);
         return -3;
-	} 
+	}
+    //printf("recv UDP22222 package\n");
 
     // 将数据从网络包取到本地
     // 数据基础信息
@@ -345,15 +356,28 @@ int sendUdpPackage(struct rte_mempool* mbuf_pool)
     // add all fd upd socker and send  
     struct connectConfig *head = NULL;
 
+    // range socket
     for  (head = headUDPConfig;  head != NULL; head =  head->next)
     {
+        
         struct connectData *data;
-        rte_ring_mc_dequeue(head->sndbuf,(void**)&data);
-
-
+        
+        int res = rte_ring_mc_dequeue(head->sndbuf,(void**)&data);
+        if (res != 0)
+        {
+            continue;
+        }
+        //printf("11111111 socket fd == %d\n",head->fd);
+        //printf("send UDP package");
         uint8_t* dstmac = get_dst_mac(data->dip);
+
+        struct in_addr addr3;
+        addr3.s_addr=data->dip;
+        printf("find arp cache---> src: %s\n", inet_ntoa(addr3));
+
         if(dstmac ==NULL)
         {
+            //printf("find  mac is NULL\n");
             struct rte_mbuf *arpbuf =  send_arp_pack(mbuf_pool, RTE_ARP_OP_REQUEST,g_src_mac,data->sip,data->dip);
         
     
@@ -363,6 +387,7 @@ int sendUdpPackage(struct rte_mempool* mbuf_pool)
        }
        else
        {
+            //printf("dst mac is not NULL\n");
             struct rte_mbuf *udpbuf =  send_udp_pack(mbuf_pool,data->sip,data->dip,data->sport,data->dport,g_src_mac,dstmac,data->data,data->length);
             struct inout_ring *ring = ringInstance();
             rte_ring_mp_enqueue_burst(ring->out, (void **)&udpbuf, 1, NULL);
@@ -375,7 +400,7 @@ int sendUdpPackage(struct rte_mempool* mbuf_pool)
 
 int udpApp(__attribute__((unused)) void *arg)
 {
-    //printf ("App starting !!!!!!!!!!!!!!!!!!!!!!\n");
+
     // UDP的管道符
     int connfd = nsocket(AF_INET, SOCK_DGRAM, 0);
     if (connfd == -1)
@@ -391,13 +416,13 @@ int udpApp(__attribute__((unused)) void *arg)
     // 设置本机地址端口协议
     localaddr.sin_port = htons(8889);
     localaddr.sin_family = AF_INET;
-    localaddr.sin_addr.s_addr = inet_addr("10.6.140.50");
+    localaddr.sin_addr.s_addr = inet_addr("10.6.140.51");
 
     // 开始监听端口
     nbind(connfd, (struct sockaddr *)&localaddr, sizeof(localaddr));
 
     // 收发UDP报文缓冲区
-    char buffer[UDP_APP_RECV_BUFFER_SIZE] = {0};
+    char buffer[UDP_APP_RECV_BUFFER_SIZE] = {"Hello, Im haibao 123456!"};
     socklen_t addrlen = sizeof(clientaddr);
 
     // 无休止的处理消息
@@ -405,7 +430,7 @@ int udpApp(__attribute__((unused)) void *arg)
     {
         if (nrecvfrom(connfd, buffer, UDP_APP_RECV_BUFFER_SIZE, 0, (struct sockaddr *)&clientaddr, &addrlen) < 0)
         {
-            // 成功接收到消息
+            // 接收到消息error
             
             printf("Recv sucessful !!!!!!!!!!!!!!!!!");
             continue;
@@ -413,7 +438,7 @@ int udpApp(__attribute__((unused)) void *arg)
         }
         else
         {
-            // 接收消息失败
+            // 接收消息sucessful
 			printf("recv from %s:%d, data:%s\n", inet_ntoa(clientaddr.sin_addr), 
 				ntohs(clientaddr.sin_port), buffer);
 			nsendto(connfd, buffer, strlen(buffer), 0, 
